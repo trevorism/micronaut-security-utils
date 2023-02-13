@@ -1,0 +1,11 @@
+name: Publish jar with Gradle
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  call-jar-release:
+    uses: trevorism/actions-workflows/.github/workflows/release.yml@master
+    with:
+      JDK_VERSION: 17
