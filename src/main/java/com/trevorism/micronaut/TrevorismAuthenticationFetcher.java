@@ -20,7 +20,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
 
     private PropertiesProvider propertiesProvider;
 
-    TrevorismAuthenticationFetcher() {
+    public TrevorismAuthenticationFetcher() {
         propertiesProvider = new ClasspathBasedPropertiesProvider();
     }
 

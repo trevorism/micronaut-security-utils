@@ -39,7 +39,8 @@ public class TrevorismSecurityRule implements SecurityRule {
         return Mono.just(SecurityRuleResult.ALLOWED);
 
     }
-    boolean validateClaims(AnnotationValue<Secure> annotation, Authentication authentication) {
+
+    public boolean validateClaims(AnnotationValue<Secure> annotation, Authentication authentication) {
         try{
             validateInputs(annotation, authentication);
             validateIssuer(authentication);
@@ -66,7 +67,8 @@ public class TrevorismSecurityRule implements SecurityRule {
             throw new RuntimeException("Unexpected issuer: ${issuer}");
         }
     }
-    static void validateRole(String role, boolean allowInternal, String claimRole) {
+
+    private static void validateRole(String role, boolean allowInternal, String claimRole) {
 
         if (claimRole == null) {
             throw new RuntimeException("Unable to parse claim role");
