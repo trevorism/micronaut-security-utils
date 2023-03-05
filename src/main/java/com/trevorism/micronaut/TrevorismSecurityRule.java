@@ -15,7 +15,6 @@ import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import javax.swing.text.html.Option;
 import java.util.Optional;
 
 @Singleton
@@ -29,11 +28,10 @@ public class TrevorismSecurityRule implements SecurityRule {
 
     @Override
     public Publisher<SecurityRuleResult> check(HttpRequest<?> request, RouteMatch<?> routeMatch, Authentication authentication) {
-        if (routeMatch instanceof MethodBasedRouteMatch) {
-            MethodBasedRouteMatch methodBasedRouteMatch = (MethodBasedRouteMatch) routeMatch;
+        if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch) {
             if (methodBasedRouteMatch.hasAnnotation(Secure.class)) {
                 AnnotationValue<Secure> secureAnnotation = methodBasedRouteMatch.getAnnotation(Secure.class);
-                if(validateClaims(secureAnnotation, authentication))
+                if (validateClaims(secureAnnotation, authentication))
                     return Mono.just(SecurityRuleResult.ALLOWED);
                 else
                     return Mono.just(SecurityRuleResult.REJECTED);
@@ -44,14 +42,12 @@ public class TrevorismSecurityRule implements SecurityRule {
     }
 
     public boolean validateClaims(AnnotationValue<Secure> annotation, Authentication authentication) {
-        try{
+        try {
             validateInputs(annotation, authentication);
             validateIssuer(authentication);
-            validateRole(annotation.stringValue(),
-                    annotation.booleanValue("allowInternal"),
-                    authentication.getRoles().stream().findFirst().get());
+            validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), authentication.getRoles().stream().findFirst());
             return true;
-        }catch(Exception ignored){
+        } catch (Exception ignored) {
             return false;
         }
     }
@@ -64,6 +60,7 @@ public class TrevorismSecurityRule implements SecurityRule {
             throw new RuntimeException("Unable to validate against a method without the @Secure annotation");
         }
     }
+
     private void validateIssuer(Authentication authentication) {
         String issuer = authentication.getAttributes().get("iss").toString();
         if (!"https://trevorism.com".equals(issuer)) {
@@ -71,30 +68,29 @@ public class TrevorismSecurityRule implements SecurityRule {
         }
     }
 
-    private static void validateRole(Optional<String> role, Optional<Boolean> allowInternal, String claimRole) {
-
-        if (claimRole == null) {
+    private static void validateRole(Optional<String> role, Optional<Boolean> allowInternal, Optional<String> claimRole) {
+        if (claimRole.isEmpty()) {
             throw new RuntimeException("Unable to parse claim role");
         }
         if (role.isEmpty()) {
             return;
         }
-        if (claimRole.equals(Roles.INTERNAL) && (!allowInternal.isPresent() || !allowInternal.get())) {
+        String roleFromClaim = claimRole.get();
+        if (roleFromClaim.equals(Roles.INTERNAL) && (allowInternal.isEmpty() || !allowInternal.get())) {
             throw new RuntimeException("Insufficient access");
         }
-        if (role.get().equals(Roles.ADMIN)) {
-            if (!claimRole.equals(Roles.ADMIN)) {
+        if (Roles.ADMIN.equals(role.get())) {
+            if (!roleFromClaim.equals(Roles.ADMIN)) {
                 throw new RuntimeException("Insufficient access");
             }
         }
-        if (role.get().equals(Roles.SYSTEM)) {
-            if (claimRole.equals(Roles.USER)) {
+        if (Roles.SYSTEM.equals(role.get())) {
+            if (roleFromClaim.equals(Roles.USER)) {
                 throw new RuntimeException("Insufficient access");
             }
 
         }
     }
-
 
 
 }

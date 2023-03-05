@@ -26,6 +26,10 @@ apply plugin: "com.trevorism.gradle.release"
 
 repositories {
     mavenCentral()
+    maven {
+        url uri("https://maven.pkg.github.com/trevorism/secure-utils")
+        credentials creds
+    }
 }
 
 micronaut{
@@ -33,10 +37,7 @@ micronaut{
 }
 
 dependencies {
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.11.5'
-
+    api 'com.trevorism:secure-utils:5.0.0'
     api 'io.micronaut.security:micronaut-security:3.10.0'
     implementation 'jakarta.inject:jakarta.inject-api:2.0.1'
     implementation 'io.projectreactor:reactor-core:3.5.2'
