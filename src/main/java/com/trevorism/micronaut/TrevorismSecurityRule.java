@@ -15,6 +15,9 @@ import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import javax.swing.text.html.Option;
+import java.util.Optional;
+
 @Singleton
 @Replaces(SecuredAnnotationRule.class)
 public class TrevorismSecurityRule implements SecurityRule {
@@ -44,8 +47,8 @@ public class TrevorismSecurityRule implements SecurityRule {
         try{
             validateInputs(annotation, authentication);
             validateIssuer(authentication);
-            validateRole(annotation.stringValue().get(),
-                    annotation.booleanValue("allowInternal").get().booleanValue(),
+            validateRole(annotation.stringValue(),
+                    annotation.booleanValue("allowInternal"),
                     authentication.getRoles().stream().findFirst().get());
             return true;
         }catch(Exception ignored){
@@ -68,7 +71,7 @@ public class TrevorismSecurityRule implements SecurityRule {
         }
     }
 
-    private static void validateRole(String role, boolean allowInternal, String claimRole) {
+    private static void validateRole(Optional<String> role, Optional<Boolean> allowInternal, String claimRole) {
 
         if (claimRole == null) {
             throw new RuntimeException("Unable to parse claim role");
@@ -76,15 +79,15 @@ public class TrevorismSecurityRule implements SecurityRule {
         if (role.isEmpty()) {
             return;
         }
-        if (claimRole.equals(Roles.INTERNAL) && !allowInternal) {
+        if (claimRole.equals(Roles.INTERNAL) && (!allowInternal.isPresent() || !allowInternal.get())) {
             throw new RuntimeException("Insufficient access");
         }
-        if (role.equals(Roles.ADMIN)) {
+        if (role.get().equals(Roles.ADMIN)) {
             if (!claimRole.equals(Roles.ADMIN)) {
                 throw new RuntimeException("Insufficient access");
             }
         }
-        if (role.equals(Roles.SYSTEM)) {
+        if (role.get().equals(Roles.SYSTEM)) {
             if (claimRole.equals(Roles.USER)) {
                 throw new RuntimeException("Insufficient access");
             }
