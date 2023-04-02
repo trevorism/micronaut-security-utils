@@ -1,9 +1,6 @@
 package com.trevorism.micronaut;
 
-import com.trevorism.ClaimProperties;
-import com.trevorism.ClaimsProvider;
-import com.trevorism.ClasspathBasedPropertiesProvider;
-import com.trevorism.PropertiesProvider;
+import com.trevorism.*;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.filters.AuthenticationFetcher;
@@ -35,13 +32,21 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
     }
 
     private Publisher<Authentication> publishToken(String bearerToken) {
-        ClaimProperties claimProperties = ClaimsProvider.getClaims(bearerToken, propertiesProvider.getProperty("signingKey"));
+        ClaimProperties claimProperties = ClaimsProvider.getClaims(bearerToken, getSigningKey());
         return Mono.just(Authentication.build(claimProperties.getSubject(),
                 List.of(claimProperties.getRole()),
                 Map.of("type", claimProperties.getType(),
                         "iss", claimProperties.getIssuer(),
                         "id", claimProperties.getId(),
                         "aud", claimProperties.getAudience())));
+    }
+
+    private String getSigningKey() {
+        try {
+            return propertiesProvider.getProperty("signingKey");
+        }catch (Exception e){
+            throw new SigningKeyException();
+        }
     }
 
     private String getTokenFromBearerToken(HttpRequest<?> request) {

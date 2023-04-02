@@ -13,6 +13,8 @@ import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.Optional;
@@ -21,6 +23,7 @@ import java.util.Optional;
 @Replaces(SecuredAnnotationRule.class)
 public class TrevorismSecurityRule implements SecurityRule {
 
+    private static final Logger log = LoggerFactory.getLogger(TrevorismSecurityRule.class);
     @Override
     public int getOrder() {
         return -1000;
@@ -47,7 +50,8 @@ public class TrevorismSecurityRule implements SecurityRule {
             validateIssuer(authentication);
             validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), authentication.getRoles().stream().findFirst());
             return true;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("Failed to validate claim: " + e.getMessage());
             return false;
         }
     }
