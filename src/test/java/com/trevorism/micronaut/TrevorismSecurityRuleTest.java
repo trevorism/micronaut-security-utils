@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TrevorismSecurityRuleTest {
+public class TrevorismSecurityRuleTest {
 
     @Test
     void getOrder() {

@@ -18,7 +18,7 @@ buildscript {
 }
 
 plugins{
-    id("io.micronaut.library") version "3.7.4"
+    id("io.micronaut.library") version "3.7.8"
     id "jacoco"
 }
 
@@ -33,7 +33,7 @@ repositories {
 }
 
 micronaut{
-    version = "3.8.7"
+    version = "3.9.0"
 }
 
 dependencies {
