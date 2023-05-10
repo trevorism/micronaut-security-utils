@@ -19,8 +19,7 @@ class TrevorismHstsFilter implements HttpServerFilter {
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
         Publisher<MutableHttpResponse<?>> publisher = chain.proceed(request);
         return Publishers.then(publisher, httpResponse -> {
-            System.out.println("Here");
-            httpResponse.headers(Map.of("Strict-Transport-Security","max-age=-1; includeSubDomains; preload"));
+            httpResponse.headers(Map.of("Strict-Transport-Security","max-age=31536000; includeSubDomains; preload"));
         });
     }
 
