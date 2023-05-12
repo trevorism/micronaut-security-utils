@@ -1,6 +1,7 @@
 package com.trevorism.micronaut;
 
 import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.simple.SimpleHttpRequest;
 import io.micronaut.http.simple.SimpleHttpResponseFactory;
@@ -12,20 +13,19 @@ import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TrevorismHstsFilterTest {
+class RedirectHttpToHttpsFilterTest {
 
     @Test
     void getOrder() {
-        TrevorismHstsFilter trevorismHstsFilter = new TrevorismHstsFilter();
-
-        assertEquals(0, trevorismHstsFilter.getOrder());
+        RedirectHttpToHttpsFilter filter = new RedirectHttpToHttpsFilter();
+        assertEquals(Integer.MIN_VALUE, filter.getOrder());
     }
 
     @Test
-    void testDoFilter() throws InterruptedException {
-        TrevorismHstsFilter trevorismHstsFilter = new TrevorismHstsFilter();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = trevorismHstsFilter.doFilter(
-                new SimpleHttpRequest<String>(HttpMethod.GET, "/", ""),
+    void testFilter() throws InterruptedException{
+        RedirectHttpToHttpsFilter filter = new RedirectHttpToHttpsFilter();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = filter.doFilter(
+                new SimpleHttpRequest<>(HttpMethod.GET, "/", ""),
                 request -> Mono.just(SimpleHttpResponseFactory.INSTANCE.ok()));
 
         mutableHttpResponsePublisher.subscribe(new Subscriber<>() {
@@ -36,7 +36,8 @@ public class TrevorismHstsFilterTest {
 
             @Override
             public void onNext(MutableHttpResponse<?> mutableHttpResponse) {
-                assertEquals("max-age=-1; includeSubDomains; preload", mutableHttpResponse.getHeaders().get("Strict-Transport-Security"));
+                assertEquals(HttpStatus.PERMANENT_REDIRECT, mutableHttpResponse.getStatus());
+                assertEquals("https:/", mutableHttpResponse.getHeaders().get("Location"));
             }
 
             @Override
@@ -50,6 +51,5 @@ public class TrevorismHstsFilterTest {
 
         Thread.sleep(1000);
     }
-
 
 }

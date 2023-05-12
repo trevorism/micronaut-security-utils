@@ -33,6 +33,6 @@ class TrevorismHstsFilter implements HttpServerFilter {
 
     @Override
     public int getOrder() {
-        return 1;
+        return 0;
     }
 }
