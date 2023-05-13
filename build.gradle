@@ -38,7 +38,7 @@ micronaut{
 
 dependencies {
     api 'com.trevorism:secure-utils:5.0.0'
-    api ('io.micronaut.security:micronaut-security:3.10.0'){
+    api ('io.micronaut.security:micronaut-security:3.11.0'){
         exclude module:"slf4j-nop"
     }
     implementation 'io.projectreactor:reactor-core:3.5.4'
