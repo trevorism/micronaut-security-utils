@@ -96,5 +96,4 @@ public class TrevorismSecurityRule implements SecurityRule {
         }
     }
 
-
 }
