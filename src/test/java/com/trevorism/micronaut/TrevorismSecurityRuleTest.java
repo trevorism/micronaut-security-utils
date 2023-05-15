@@ -51,6 +51,14 @@ public class TrevorismSecurityRuleTest {
         assertFalse(result);
     }
 
+    @Test
+    void validateValidSystemClaim_WithAllowInternal() {
+        TrevorismSecurityRule rule = new TrevorismSecurityRule();
+        boolean result = rule.validateClaims(new AnnotationValue<>("Secure",
+                Map.of("value", Roles.SYSTEM, "allowInternal", true)), new TestAuthentication(Roles.INTERNAL, "https://trevorism.com"));
+        assertTrue(result);
+    }
+
 
     public class TestAuthentication implements Authentication {
         private final String role;

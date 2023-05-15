@@ -80,7 +80,10 @@ public class TrevorismSecurityRule implements SecurityRule {
             return;
         }
         String roleFromClaim = claimRole.get();
-        if (roleFromClaim.equals(Roles.INTERNAL) && (allowInternal.isEmpty() || !allowInternal.get())) {
+        if (roleFromClaim.equals(Roles.INTERNAL)) {
+            if(allowInternal.isPresent() && allowInternal.get()){
+                return;
+            }
             throw new RuntimeException("Insufficient access");
         }
         if (Roles.ADMIN.equals(role.get())) {
@@ -89,10 +92,13 @@ public class TrevorismSecurityRule implements SecurityRule {
             }
         }
         if (Roles.SYSTEM.equals(role.get())) {
-            if (roleFromClaim.equals(Roles.USER)) {
+            if (!roleFromClaim.equals(Roles.ADMIN) && !roleFromClaim.equals(Roles.SYSTEM))
                 throw new RuntimeException("Insufficient access");
             }
-
+        if (Roles.TENANT_ADMIN.equals(role.get())) {
+            if (!roleFromClaim.equals(Roles.ADMIN) && !roleFromClaim.equals(Roles.SYSTEM) && !roleFromClaim.equals(Roles.TENANT_ADMIN)) {
+                throw new RuntimeException("Insufficient access");
+            }
         }
     }
 
