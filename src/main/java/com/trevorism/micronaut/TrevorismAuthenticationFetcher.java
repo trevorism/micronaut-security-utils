@@ -38,7 +38,8 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
                 Map.of("type", claimProperties.getType(),
                         "iss", claimProperties.getIssuer(),
                         "id", claimProperties.getId(),
-                        "aud", claimProperties.getAudience())));
+                        "aud", claimProperties.getAudience(),
+                        "tenant", claimProperties.getTenant())));
     }
 
     private String getSigningKey() {
