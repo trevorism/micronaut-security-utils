@@ -8,7 +8,9 @@ import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Singleton
 public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
@@ -25,7 +27,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
     public Publisher<Authentication> fetchAuthentication(HttpRequest<?> request) {
         String sessionToken = getTokenFromSessionCookie(request);
         String bearerToken = getTokenFromBearerToken(request);
-        if(bearerToken == null && sessionToken == null){
+        if (bearerToken == null && sessionToken == null) {
             return Mono.empty();
         }
         return publishToken(Objects.requireNonNullElse(bearerToken, sessionToken));
@@ -33,19 +35,21 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
 
     private Publisher<Authentication> publishToken(String bearerToken) {
         ClaimProperties claimProperties = ClaimsProvider.getClaims(bearerToken, getSigningKey());
-        return Mono.just(Authentication.build(claimProperties.getSubject(),
-                List.of(claimProperties.getRole()),
-                Map.of("type", claimProperties.getType(),
-                        "iss", claimProperties.getIssuer(),
-                        "id", claimProperties.getId(),
-                        "aud", claimProperties.getAudience(),
-                        "tenant", claimProperties.getTenant())));
+        Map<String, Object> claimMap = Map.of("type", claimProperties.getType(),
+                "iss", claimProperties.getIssuer(),
+                "id", claimProperties.getId(),
+                "aud", claimProperties.getAudience());
+        if (claimProperties.getTenant() != null) {
+            claimMap.put("tenant", claimProperties.getTenant());
+        }
+
+        return Mono.just(Authentication.build(claimProperties.getSubject(), List.of(claimProperties.getRole()), claimMap));
     }
 
     private String getSigningKey() {
         try {
             return propertiesProvider.getProperty("signingKey");
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new SigningKeyException();
         }
     }
