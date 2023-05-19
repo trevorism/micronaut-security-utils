@@ -9,18 +9,34 @@ import io.micronaut.http.filter.FilterChain;
 import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Filter("/**")
-class TrevorismHstsFilter implements HttpServerFilter {
+class TrevorismCorrelationFilter implements HttpServerFilter {
 
+    public static String CORRELATION_ID_HEADER_KEY = "X-Correlation-ID";
+    private static final Logger log = LoggerFactory.getLogger( TrevorismCorrelationFilter.class.getName() );
     @Override
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
+        String correlationId = getOrCreateCorrelationId(request);
+        log.info("Correlation ID: " + correlationId);
+
         Publisher<MutableHttpResponse<?>> publisher = chain.proceed(request);
         return Publishers.then(publisher, httpResponse -> {
-            httpResponse.headers(Map.of("Strict-Transport-Security","max-age=31536000; includeSubDomains; preload"));
+            httpResponse.headers(Map.of(CORRELATION_ID_HEADER_KEY, correlationId));
         });
+    }
+
+    private static String getOrCreateCorrelationId(HttpRequest<?> request) {
+        String correlationId = request.getHeaders().get(CORRELATION_ID_HEADER_KEY);
+        if(correlationId == null){
+            correlationId = UUID.randomUUID().toString();
+        }
+        return correlationId;
     }
 
     @Override

@@ -12,43 +12,43 @@ import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TrevorismHstsFilterTest {
+public class TrevorismCorrelationFilterTest {
 
     @Test
     void getOrder() {
-        TrevorismHstsFilter trevorismHstsFilter = new TrevorismHstsFilter();
+        TrevorismCorrelationFilter trevorismCorrelationFilter = new TrevorismCorrelationFilter();
 
-        assertEquals(0, trevorismHstsFilter.getOrder());
+        assertEquals(0, trevorismCorrelationFilter.getOrder());
     }
 
     @Test
-    void testDoFilter() throws InterruptedException {
-        TrevorismHstsFilter trevorismHstsFilter = new TrevorismHstsFilter();
-        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = trevorismHstsFilter.doFilter(
+    void testDoFilter() {
+        TrevorismCorrelationFilter trevorismCorrelationFilter = new TrevorismCorrelationFilter();
+        Publisher<MutableHttpResponse<?>> mutableHttpResponsePublisher = trevorismCorrelationFilter.doFilter(
                 new SimpleHttpRequest<String>(HttpMethod.GET, "/", ""),
                 request -> Mono.just(SimpleHttpResponseFactory.INSTANCE.ok()));
 
-        mutableHttpResponsePublisher.subscribe(new Subscriber<>() {
+        mutableHttpResponsePublisher.subscribe(new Subscriber<MutableHttpResponse<?>>() {
             @Override
             public void onSubscribe(Subscription s) {
-                s.request(50);
+                s.request(1);
             }
 
             @Override
             public void onNext(MutableHttpResponse<?> mutableHttpResponse) {
-                assertEquals("max-age=-1; includeSubDomains; preload", mutableHttpResponse.getHeaders().get("Strict-Transport-Security"));
+                assertEquals(200, mutableHttpResponse.getStatus().getCode());
             }
 
             @Override
             public void onError(Throwable t) {
+                fail(t);
             }
 
             @Override
             public void onComplete() {
+
             }
         });
-
-        Thread.sleep(1000);
     }
 
 
