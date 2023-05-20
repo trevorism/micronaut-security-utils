@@ -16,7 +16,6 @@ import java.util.Objects;
 public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
 
     public static final String BEARER_PREFIX = "bearer ";
-
     private PropertiesProvider propertiesProvider;
 
     public TrevorismAuthenticationFetcher() {

@@ -24,7 +24,7 @@ class TrevorismCorrelationFilter implements HttpServerFilter {
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
         String correlationId = getOrCreateCorrelationId(request);
         log.info("Correlation ID: " + correlationId);
-
+        request.setAttribute(CORRELATION_ID_HEADER_KEY, correlationId);
         Publisher<MutableHttpResponse<?>> publisher = chain.proceed(request);
         return Publishers.then(publisher, httpResponse -> {
             httpResponse.headers(Map.of(CORRELATION_ID_HEADER_KEY, correlationId));
