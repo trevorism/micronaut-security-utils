@@ -8,6 +8,7 @@ import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +40,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
                 "id", claimProperties.getId(),
                 "aud", claimProperties.getAudience());
         if (claimProperties.getTenant() != null) {
+            claimMap = new HashMap<>(claimMap);
             claimMap.put("tenant", claimProperties.getTenant());
         }
 
