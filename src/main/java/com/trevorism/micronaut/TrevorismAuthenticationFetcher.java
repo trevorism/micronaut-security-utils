@@ -47,7 +47,10 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
 
     private String getSigningKey() {
         try {
-            return propertiesProvider.getProperty("signingKey");
+            String key = propertiesProvider.getProperty("signingKey");
+            if(key == null || key.isBlank())
+                throw new Exception();
+            return key;
         } catch (Exception e) {
             throw new SigningKeyException();
         }
