@@ -19,9 +19,16 @@ import java.util.UUID;
 class TrevorismCorrelationFilter implements HttpServerFilter {
 
     public static String CORRELATION_ID_HEADER_KEY = "X-Correlation-ID";
-    private static final Logger log = LoggerFactory.getLogger( TrevorismCorrelationFilter.class.getName() );
+    private static final Logger log = LoggerFactory.getLogger(TrevorismCorrelationFilter.class.getName());
+
     @Override
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
+        String path = request.getPath();
+        if (path.equals("/") || path.equals("/favicon.ico") || request.getPath().contains("/ping") ||
+                path.contains("/swagger")) {
+            return chain.proceed(request);
+        }
+
         String correlationId = getOrCreateCorrelationId(request);
         log.info("Correlation ID: " + correlationId);
         request.setAttribute(CORRELATION_ID_HEADER_KEY, correlationId);
@@ -33,7 +40,7 @@ class TrevorismCorrelationFilter implements HttpServerFilter {
 
     private static String getOrCreateCorrelationId(HttpRequest<?> request) {
         String correlationId = request.getHeaders().get(CORRELATION_ID_HEADER_KEY);
-        if(correlationId == null){
+        if (correlationId == null) {
             correlationId = UUID.randomUUID().toString();
         }
         return correlationId;
@@ -41,7 +48,7 @@ class TrevorismCorrelationFilter implements HttpServerFilter {
 
     @Override
     public Publisher<? extends HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
-        if(chain instanceof ServerFilterChain){
+        if (chain instanceof ServerFilterChain) {
             return doFilter(request, (ServerFilterChain) chain);
         }
         return chain.proceed(request);
