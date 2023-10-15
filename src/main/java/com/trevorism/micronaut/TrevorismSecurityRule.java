@@ -4,6 +4,7 @@ import com.trevorism.secure.Roles;
 import com.trevorism.secure.Secure;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.core.annotation.AnnotationValue;
+import io.micronaut.http.HttpAttributes;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecuredAnnotationRule;
@@ -21,7 +22,7 @@ import java.util.Optional;
 
 @Singleton
 @Replaces(SecuredAnnotationRule.class)
-public class TrevorismSecurityRule implements SecurityRule {
+public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     private static final Logger log = LoggerFactory.getLogger(TrevorismSecurityRule.class);
     @Override
@@ -29,8 +30,10 @@ public class TrevorismSecurityRule implements SecurityRule {
         return -1000;
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
-    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, RouteMatch<?> routeMatch, Authentication authentication) {
+    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, Authentication authentication) {
+        RouteMatch<?> routeMatch = request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse(null);
         if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch) {
             if (methodBasedRouteMatch.hasAnnotation(Secure.class)) {
                 AnnotationValue<Secure> secureAnnotation = methodBasedRouteMatch.getAnnotation(Secure.class);

@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Singleton
-public class TrevorismAuthenticationFetcher implements AuthenticationFetcher {
+public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<HttpRequest<?>> {
 
     public static final String BEARER_PREFIX = "bearer ";
     private PropertiesProvider propertiesProvider;
