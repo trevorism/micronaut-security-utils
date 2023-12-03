@@ -6,6 +6,8 @@ import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.filters.AuthenticationFetcher;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
@@ -18,6 +20,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     public static final String BEARER_PREFIX = "bearer ";
     private PropertiesProvider propertiesProvider;
+    private static final Logger log = LoggerFactory.getLogger(TrevorismAuthenticationFetcher.class.getName());
 
     public TrevorismAuthenticationFetcher() {
         propertiesProvider = new ClasspathBasedPropertiesProvider();
@@ -25,12 +28,17 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     @Override
     public Publisher<Authentication> fetchAuthentication(HttpRequest<?> request) {
-        String sessionToken = getTokenFromSessionCookie(request);
-        String bearerToken = getTokenFromBearerToken(request);
-        if (bearerToken == null && sessionToken == null) {
+        try {
+            String sessionToken = getTokenFromSessionCookie(request);
+            String bearerToken = getTokenFromBearerToken(request);
+            if (bearerToken == null && sessionToken == null) {
+                return Mono.empty();
+            }
+            return publishToken(Objects.requireNonNullElse(bearerToken, sessionToken));
+        } catch (Exception e) {
+            log.warn("Failed to authenticate", e);
             return Mono.empty();
         }
-        return publishToken(Objects.requireNonNullElse(bearerToken, sessionToken));
     }
 
     private Publisher<Authentication> publishToken(String bearerToken) {

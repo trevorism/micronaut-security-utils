@@ -54,7 +54,7 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), authentication.getRoles().stream().findFirst());
             return true;
         } catch (Exception e) {
-            log.debug("Failed to validate claim: " + e.getMessage());
+            log.debug("Failed to validate claim", e);
             return false;
         }
     }
