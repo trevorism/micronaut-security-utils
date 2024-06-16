@@ -18,7 +18,7 @@ buildscript {
 }
 
 plugins{
-    id("io.micronaut.library") version "4.2.0"
+    id("io.micronaut.library") version "4.4.0"
     id "jacoco"
 }
 
@@ -33,23 +33,23 @@ repositories {
 }
 
 micronaut{
-    version = "4.2.0"
+    version = "4.5.0"
 }
 
 dependencies {
     api 'com.trevorism:secure-utils:5.1.0'
-    api "io.micronaut:micronaut-http:4.2.1"
-    api "io.micronaut:micronaut-router:4.2.1"
-    implementation ('io.micronaut.security:micronaut-security:4.4.0'){
+    implementation 'io.micronaut:micronaut-http:4.5.3'
+    implementation "io.micronaut:micronaut-router:4.5.3"
+    implementation ('io.micronaut.security:micronaut-security:4.9.0'){
         exclude module:"slf4j-nop"
     }
-    implementation 'io.projectreactor:reactor-core:3.6.0'
+    implementation 'io.projectreactor:reactor-core:3.6.7'
     implementation 'jakarta.inject:jakarta.inject-api:2.0.1'
+    implementation 'ch.qos.logback:logback-classic:1.5.6'
 
-    testImplementation 'org.slf4j:slf4j-nop:2.0.9'
-    testImplementation 'io.projectreactor:reactor-test:3.6.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.1'
+    testImplementation 'io.projectreactor:reactor-test:3.6.7'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
 
 test {
