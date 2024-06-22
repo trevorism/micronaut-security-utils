@@ -37,12 +37,10 @@ micronaut{
 }
 
 dependencies {
-    api 'com.trevorism:secure-utils:5.1.0'
+    api 'com.trevorism:secure-utils:6.0.0'
     implementation 'io.micronaut:micronaut-http:4.5.3'
     implementation "io.micronaut:micronaut-router:4.5.3"
-    implementation ('io.micronaut.security:micronaut-security:4.9.0'){
-        exclude module:"slf4j-nop"
-    }
+    implementation 'io.micronaut.security:micronaut-security:4.9.0'
     implementation 'io.projectreactor:reactor-core:3.6.7'
     implementation 'jakarta.inject:jakarta.inject-api:2.0.1'
     implementation 'ch.qos.logback:logback-classic:1.5.6'

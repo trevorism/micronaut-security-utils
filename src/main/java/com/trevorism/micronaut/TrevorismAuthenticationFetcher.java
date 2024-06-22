@@ -4,6 +4,7 @@ import com.trevorism.*;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.filters.AuthenticationFetcher;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -19,12 +20,10 @@ import java.util.Objects;
 public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<HttpRequest<?>> {
 
     public static final String BEARER_PREFIX = "bearer ";
-    private PropertiesProvider propertiesProvider;
     private static final Logger log = LoggerFactory.getLogger(TrevorismAuthenticationFetcher.class.getName());
 
-    public TrevorismAuthenticationFetcher() {
-        propertiesProvider = new ClasspathBasedPropertiesProvider();
-    }
+    @Inject
+    private PropertiesBean propertiesProvider;
 
     @Override
     public Publisher<Authentication> fetchAuthentication(HttpRequest<?> request) {
@@ -43,15 +42,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     private Publisher<Authentication> publishToken(String bearerToken) {
         ClaimProperties claimProperties = ClaimsProvider.getClaims(bearerToken, getSigningKey());
-        Map<String, Object> claimMap = Map.of("type", claimProperties.getType(),
-                "iss", claimProperties.getIssuer(),
-                "id", claimProperties.getId(),
-                "aud", claimProperties.getAudience());
-        if (claimProperties.getTenant() != null) {
-            claimMap = new HashMap<>(claimMap);
-            claimMap.put("tenant", claimProperties.getTenant());
-        }
-
+        Map<String, Object> claimMap = convertClaimsToMap(claimProperties);
         return Mono.just(Authentication.build(claimProperties.getSubject(), List.of(claimProperties.getRole()), claimMap));
     }
 
@@ -83,6 +74,24 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
             return request.getCookies().get("session").getValue();
         } catch (Exception ignored) {
             return null;
+        }
+    }
+
+    private Map<String, Object> convertClaimsToMap(ClaimProperties claimProperties) {
+        Map<String, Object> claimMap = new HashMap<>();
+        addIfNotNull(claimMap, "issuer", claimProperties.getIssuer());
+        addIfNotNull(claimMap, "audience", claimProperties.getAudience());
+        addIfNotNull(claimMap, "subject", claimProperties.getSubject());
+        addIfNotNull(claimMap, "id", claimProperties.getId());
+        addIfNotNull(claimMap, "type", claimProperties.getType());
+        addIfNotNull(claimMap, "tenant", claimProperties.getTenant());
+        addIfNotNull(claimMap, "permissions", claimProperties.getPermissions());
+        return claimMap;
+    }
+
+    private void addIfNotNull(Map<String, Object> claimMap, String key, Object value) {
+        if(value != null) {
+            claimMap.put(key, value);
         }
     }
 

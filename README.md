@@ -6,6 +6,8 @@
 
 This library converts micronaut-security into using Trevorism JWT tokens.
 
+Latest [Version](https://github.com/trevorism/micronaut-security-utils/releases/latest)
+
 Controller methods with no `@Secure` annotations are available to all.
 
 Controller methods with `@Secure` annotations conform to Trevorism authorization rules. See https://github.com/trevorism/secure-utils
