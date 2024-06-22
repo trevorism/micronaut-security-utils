@@ -96,6 +96,15 @@ public class TrevorismSecurityRuleTest {
         assertFalse(result);
     }
 
+    @Test
+    void validateValidClaimsMissingPermissions() {
+        TrevorismSecurityRule rule = new TrevorismSecurityRule();
+        boolean result = rule.validateClaims(new AnnotationValue<>("Secure",
+                        Map.of("value", Roles.USER, "permissions", "CE")),
+                new TestAuthentication(Roles.USER, "https://trevorism.com", null, null));
+        assertTrue(result);
+    }
+
     public class TestAuthentication implements Authentication {
         private final String role;
         private final String issuer;

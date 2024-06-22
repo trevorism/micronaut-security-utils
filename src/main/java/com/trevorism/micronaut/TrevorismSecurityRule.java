@@ -111,7 +111,7 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             return;
         }
         if (!(claimedPermissions instanceof String permissionString)) {
-            throw new AuthenticationFailedException("Permissions not found in token");
+            return;
         }
         for (char permission : permissions.get().toCharArray()) {
             if (!permissionString.contains(String.valueOf(permission))) {

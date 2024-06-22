@@ -1,3 +1,7 @@
+## 2.0.1
+
+Bug fix. If a permission is not supplied, allow authentication
+
 ## 2.0.0
 
 Upgrade to secure utils 6.0.0, which adds permission support for (c)reate, (r)ead, (u)pdate, (d)elete, and (e)xecute.
