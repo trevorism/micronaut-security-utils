@@ -48,7 +48,6 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             }
         }
         return Mono.just(SecurityRuleResult.ALLOWED);
-
     }
 
     private Mono<SecurityRuleResult> allowOrRejectBasedOnSecureAnnotationAndIncomingClaims(Authentication authentication, MethodBasedRouteMatch methodBasedRouteMatch) {

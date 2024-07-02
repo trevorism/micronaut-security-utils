@@ -31,7 +31,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
             String sessionToken = getTokenFromSessionCookie(request);
             String bearerToken = getTokenFromBearerToken(request);
             if (bearerToken == null && sessionToken == null) {
-                return Mono.empty();
+                return Mono.just(Authentication.build(""));
             }
             return publishToken(Objects.requireNonNullElse(bearerToken, sessionToken));
         } catch (Exception e) {
