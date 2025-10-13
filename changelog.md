@@ -1,3 +1,7 @@
+## 2.3.1
+
+Move to java 21.
+
 ## 2.3.0
 
 Update dependencies to remove security vulnerabilities.
