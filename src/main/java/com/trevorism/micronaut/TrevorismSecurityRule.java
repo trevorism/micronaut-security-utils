@@ -13,6 +13,7 @@ import io.micronaut.security.rules.SecuredAnnotationRule;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.web.router.MethodBasedRouteMatch;
+import io.micronaut.web.router.RouteAttributes;
 import io.micronaut.web.router.RouteMatch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -41,7 +42,7 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
     @SuppressWarnings("rawtypes")
     @Override
     public Publisher<SecurityRuleResult> check(HttpRequest<?> request, Authentication authentication) {
-        RouteMatch<?> routeMatch = request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse(null);
+        RouteMatch<?> routeMatch = RouteAttributes.getRouteMatch(request).orElse(null);
         if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch) {
             if (methodBasedRouteMatch.hasAnnotation(Secure.class)) {
                 return allowOrRejectBasedOnSecureAnnotationAndIncomingClaims(authentication, methodBasedRouteMatch);
