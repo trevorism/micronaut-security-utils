@@ -1,3 +1,7 @@
+## 2.3.0
+
+Update dependencies to remove security vulnerabilities.
+
 ## 2.2.0
 
 Create an empty authentication object when no tokens are supplied.
