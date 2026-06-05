@@ -17,7 +17,7 @@ buildscript {
     }
 }
 
-plugins{
+plugins {
     id("io.micronaut.library") version "5.0.0"
     id "jacoco"
 }
@@ -32,7 +32,7 @@ repositories {
     }
 }
 
-micronaut{
+micronaut {
     version = "5.0.2"
     importMicronautPlatform = false
 }
