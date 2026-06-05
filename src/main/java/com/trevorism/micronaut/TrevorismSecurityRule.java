@@ -1,12 +1,10 @@
 package com.trevorism.micronaut;
 
-import com.trevorism.AuthenticationFailedException;
 import com.trevorism.PropertiesProvider;
 import com.trevorism.secure.Roles;
 import com.trevorism.secure.Secure;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.core.annotation.AnnotationValue;
-import io.micronaut.http.HttpAttributes;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecuredAnnotationRule;
@@ -30,6 +28,7 @@ import java.util.Set;
 public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     private static final Logger log = LoggerFactory.getLogger(TrevorismSecurityRule.class);
+    private static final String EXPECTED_ISSUER = "https://trevorism.com";
 
     @Inject
     PropertiesProvider propertiesProvider;
@@ -43,105 +42,136 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
     @Override
     public Publisher<SecurityRuleResult> check(HttpRequest<?> request, Authentication authentication) {
         RouteMatch<?> routeMatch = RouteAttributes.getRouteMatch(request).orElse(null);
-        if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch) {
-            if (methodBasedRouteMatch.hasAnnotation(Secure.class)) {
-                return allowOrRejectBasedOnSecureAnnotationAndIncomingClaims(authentication, methodBasedRouteMatch);
-            }
+        if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch && methodBasedRouteMatch.hasAnnotation(Secure.class)) {
+            return evaluateSecureAnnotation(authentication, methodBasedRouteMatch, request);
         }
         return Mono.just(SecurityRuleResult.ALLOWED);
     }
 
-    private Mono<SecurityRuleResult> allowOrRejectBasedOnSecureAnnotationAndIncomingClaims(Authentication authentication, MethodBasedRouteMatch methodBasedRouteMatch) {
+    private Mono<SecurityRuleResult> evaluateSecureAnnotation(Authentication authentication, MethodBasedRouteMatch<?,?> methodBasedRouteMatch, HttpRequest<?> request) {
         AnnotationValue<Secure> secureAnnotation = methodBasedRouteMatch.getAnnotation(Secure.class);
-        if (validateClaims(secureAnnotation, authentication))
+        ClaimValidationResult validationResult = validateClaimDetails(secureAnnotation, authentication);
+        if (!validationResult.failed()) {
             return Mono.just(SecurityRuleResult.ALLOWED);
-        else
-            return Mono.just(SecurityRuleResult.REJECTED);
+        }
+
+        log.info("Rejected request [{} {}]: {}", request.getMethod(), request.getPath(), validationResult.reason());
+        if (validationResult.unauthenticated()) {
+            return Mono.just(SecurityRuleResult.UNKNOWN);
+        }
+        return Mono.just(SecurityRuleResult.REJECTED);
     }
 
     public boolean validateClaims(AnnotationValue<Secure> annotation, Authentication authentication) {
-        try {
-            validateInputs(annotation, authentication);
-            validateIssuer(authentication);
-            validateAuthenticationAgainstAnnotation(annotation, authentication);
-            return true;
-        } catch (Exception e) {
-            log.debug("Failed to validate claim", e);
-            return false;
-        }
+        return !validateClaimDetails(annotation, authentication).failed();
     }
 
-    private void validateInputs(AnnotationValue<Secure> annotation, Authentication authentication) {
-        if (authentication == null || authentication.getRoles().isEmpty()) {
-            throw new AuthenticationFailedException("Unable to parse incoming token; cannot find identity's role");
+    private ClaimValidationResult validateClaimDetails(AnnotationValue<Secure> annotation, Authentication authentication) {
+        ClaimValidationResult inputValidation = validateInputs(annotation, authentication);
+        if (inputValidation.failed()) {
+            return inputValidation;
+        }
+
+        ClaimValidationResult issuerValidation = validateIssuer(authentication);
+        if (issuerValidation.failed()) {
+            return issuerValidation;
+        }
+
+        return validateAuthenticationAgainstAnnotation(annotation, authentication);
+    }
+
+    private ClaimValidationResult validateInputs(AnnotationValue<Secure> annotation, Authentication authentication) {
+        if (authentication == null || authentication.getRoles() == null || authentication.getRoles().isEmpty()) {
+            return ClaimValidationResult.unauthenticated("Unable to parse token; identity role is missing");
         }
         if (annotation == null) {
-            throw new AuthenticationFailedException("Unable to validate against a method without the @Secure annotation");
+            return ClaimValidationResult.unauthorized("Unable to validate a method without @Secure annotation");
         }
+        return ClaimValidationResult.allowed();
     }
 
-    private void validateIssuer(Authentication authentication) {
-        String issuer = authentication.getAttributes().get("issuer").toString();
-        if (!"https://trevorism.com".equals(issuer)) {
-            throw new AuthenticationFailedException("Unexpected issuer: ${issuer}");
+    private ClaimValidationResult validateIssuer(Authentication authentication) {
+        Object issuerObject = authentication.getAttributes().get("issuer");
+        if (!(issuerObject instanceof String issuer)) {
+            return ClaimValidationResult.unauthenticated("Issuer claim is missing");
         }
+        if (!EXPECTED_ISSUER.equals(issuer)) {
+            return ClaimValidationResult.unauthenticated("Unexpected issuer: " + issuer);
+        }
+        return ClaimValidationResult.allowed();
     }
 
-    private void validateAuthenticationAgainstAnnotation(AnnotationValue<Secure> annotation, Authentication authentication) {
-        validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), authentication.getRoles().stream().findFirst());
-        validateAudience(annotation.booleanValue("authorizeAudience"), authentication.getAttributes().get("audience"));
-        validatePermissions(annotation.stringValue("permissions"), authentication.getAttributes().get("permissions"));
+    private ClaimValidationResult validateAuthenticationAgainstAnnotation(AnnotationValue<Secure> annotation, Authentication authentication) {
+        ClaimValidationResult roleValidation = validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), authentication.getRoles().stream().findFirst());
+        if (roleValidation.failed()) {
+            return roleValidation;
+        }
+
+        ClaimValidationResult audienceValidation = validateAudience(annotation.booleanValue("authorizeAudience"), authentication.getAttributes().get("audience"));
+        if (audienceValidation.failed()) {
+            return audienceValidation;
+        }
+
+        return validatePermissions(annotation.stringValue("permissions"), authentication.getAttributes().get("permissions"));
     }
 
-    private void validateAudience(Optional<Boolean> authorizeAudience, Object audience) {
+    private ClaimValidationResult validateAudience(Optional<Boolean> authorizeAudience, Object audience) {
         if (authorizeAudience.isEmpty() || !authorizeAudience.get()) {
-            return;
+            return ClaimValidationResult.allowed();
         }
-        if (!(audience instanceof Set audienceSet)) {
-            throw new AuthenticationFailedException("Audience not found in token");
+        if (!(audience instanceof Set<?> audienceSet)) {
+            return ClaimValidationResult.unauthorized("Audience claim is missing");
         }
+
         String clientId = propertiesProvider.getProperty("clientId");
-        if (!audienceSet.contains(clientId)) {
-            throw new AuthenticationFailedException("Audience not found in token");
+        if (clientId == null || clientId.isBlank()) {
+            return ClaimValidationResult.unauthorized("clientId configuration is missing");
         }
+        if (!audienceSet.contains(clientId)) {
+            return ClaimValidationResult.unauthorized("Audience does not contain configured clientId");
+        }
+        return ClaimValidationResult.allowed();
     }
 
-    private static void validatePermissions(Optional<String> permissions, Object claimedPermissions) {
+    private static ClaimValidationResult validatePermissions(Optional<String> permissions, Object claimedPermissions) {
         if (permissions.isEmpty() || permissions.get().isEmpty()) {
-            return;
+            return ClaimValidationResult.allowed();
         }
         if (!(claimedPermissions instanceof String permissionString)) {
-            return;
+            return ClaimValidationResult.unauthorized("Permissions claim is missing");
         }
+
         for (char permission : permissions.get().toCharArray()) {
             if (!permissionString.contains(String.valueOf(permission))) {
-                throw new AuthenticationFailedException("Insufficient access");
+                return ClaimValidationResult.unauthorized("Insufficient permissions");
             }
         }
+        return ClaimValidationResult.allowed();
     }
 
-    private static void validateRole(Optional<String> role, Optional<Boolean> allowInternal, Optional<String> claimRole) {
+    private static ClaimValidationResult validateRole(Optional<String> role, Optional<Boolean> allowInternal, Optional<String> claimRole) {
+        if (claimRole.isEmpty()) {
+            return ClaimValidationResult.unauthenticated("Role claim is missing");
+        }
+
         String roleFromClaim = claimRole.get();
-        if (roleFromClaim.equals(Roles.INTERNAL)) {
-            if(allowInternal.isPresent() && allowInternal.get()){
-                return;
+        if (Roles.INTERNAL.equals(roleFromClaim)) {
+            if (allowInternal.isPresent() && allowInternal.get()) {
+                return ClaimValidationResult.allowed();
             }
-            throw new AuthenticationFailedException("Insufficient access");
+            return ClaimValidationResult.unauthorized("Internal role is not allowed");
         }
-        if (Roles.ADMIN.equals(role.get())) {
-            if (!roleFromClaim.equals(Roles.ADMIN)) {
-                throw new AuthenticationFailedException("Insufficient access");
-            }
-        }
-        if (Roles.SYSTEM.equals(role.get())) {
-            if (!roleFromClaim.equals(Roles.ADMIN) && !roleFromClaim.equals(Roles.SYSTEM))
-                throw new AuthenticationFailedException("Insufficient access");
-            }
-        if (Roles.TENANT_ADMIN.equals(role.get())) {
-            if (!roleFromClaim.equals(Roles.ADMIN) && !roleFromClaim.equals(Roles.SYSTEM) && !roleFromClaim.equals(Roles.TENANT_ADMIN)) {
-                throw new AuthenticationFailedException("Insufficient access");
-            }
-        }
-    }
 
+        String requiredRole = role.orElse("");
+        if (Roles.ADMIN.equals(requiredRole) && !Roles.ADMIN.equals(roleFromClaim)) {
+            return ClaimValidationResult.unauthorized("Admin role is required");
+        }
+        if (Roles.SYSTEM.equals(requiredRole) && !Roles.ADMIN.equals(roleFromClaim) && !Roles.SYSTEM.equals(roleFromClaim)) {
+            return ClaimValidationResult.unauthorized("System role is required");
+        }
+        if (Roles.TENANT_ADMIN.equals(requiredRole) && !Roles.ADMIN.equals(roleFromClaim) && !Roles.SYSTEM.equals(roleFromClaim) && !Roles.TENANT_ADMIN.equals(roleFromClaim)) {
+            return ClaimValidationResult.unauthorized("Tenant admin role is required");
+        }
+        return ClaimValidationResult.allowed();
+    }
 }

@@ -18,7 +18,7 @@ buildscript {
 }
 
 plugins{
-    id("io.micronaut.library") version "4.4.0"
+    id("io.micronaut.library") version "5.0.0"
     id "jacoco"
 }
 
@@ -33,21 +33,34 @@ repositories {
 }
 
 micronaut{
-    version = "4.9.4"
+    version = "5.0.2"
+    importMicronautPlatform = false
 }
 
 dependencies {
     api 'com.trevorism:secure-utils:6.0.0'
-    implementation 'io.micronaut:micronaut-http:4.9.12'
-    implementation "io.micronaut:micronaut-router:4.9.12"
-    implementation 'io.micronaut.security:micronaut-security:4.15.0'
-    implementation 'io.projectreactor:reactor-core:3.7.11'
-    implementation 'jakarta.inject:jakarta.inject-api:2.0.1'
-    implementation 'ch.qos.logback:logback-classic:1.5.19'
 
-    testImplementation 'io.projectreactor:reactor-test:3.7.11'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:6.0.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:6.0.0'
+    annotationProcessor 'io.micronaut:micronaut-inject-java:5.0.2'
+    annotationProcessor 'io.micronaut:micronaut-graal:5.0.2'
+    annotationProcessor 'io.micronaut.security:micronaut-security-annotations:5.0.0'
+    testAnnotationProcessor 'io.micronaut:micronaut-inject-java:5.0.2'
+    testAnnotationProcessor 'io.micronaut:micronaut-graal:5.0.2'
+    testAnnotationProcessor 'io.micronaut.security:micronaut-security-annotations:5.0.0'
+
+    implementation 'io.micronaut.security:micronaut-security:5.0.0'
+    implementation 'io.micronaut:micronaut-http:5.0.2'
+    implementation "io.micronaut:micronaut-router:5.0.2"
+
+    implementation 'io.projectreactor:reactor-core:3.8.5'
+    implementation 'jakarta.inject:jakarta.inject-api:2.0.1'
+
+    implementation 'ch.qos.logback:logback-classic:1.5.34'
+
+    testImplementation 'io.projectreactor:reactor-test:3.8.5'
+    testImplementation(platform("org.junit:junit-bom:6.1.0"))
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
 
 test {
@@ -56,6 +69,6 @@ test {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(25))
     }
 }

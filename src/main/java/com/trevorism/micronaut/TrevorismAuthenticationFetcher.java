@@ -31,19 +31,20 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
             String sessionToken = getTokenFromSessionCookie(request);
             String bearerToken = getTokenFromBearerToken(request);
             if (bearerToken == null && sessionToken == null) {
-                return Mono.just(Authentication.build(""));
+                return Mono.empty();
             }
-            return publishToken(Objects.requireNonNullElse(bearerToken, sessionToken));
+            return Mono.just(publishToken(Objects.requireNonNullElse(bearerToken, sessionToken)));
         } catch (Exception e) {
-            log.warn("Failed to authenticate", e);
+            log.warn("Token rejected: {}", e.getMessage());
+            log.debug("Token rejection details", e);
             return Mono.empty();
         }
     }
 
-    private Publisher<Authentication> publishToken(String bearerToken) {
+    private Authentication publishToken(String bearerToken) {
         ClaimProperties claimProperties = ClaimsProvider.getClaims(bearerToken, getSigningKey());
         Map<String, Object> claimMap = convertClaimsToMap(claimProperties);
-        return Mono.just(Authentication.build(claimProperties.getSubject(), List.of(claimProperties.getRole()), claimMap));
+        return Authentication.build(claimProperties.getSubject(), List.of(claimProperties.getRole()), claimMap);
     }
 
     private String getSigningKey() {

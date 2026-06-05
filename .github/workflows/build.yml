@@ -12,4 +12,4 @@ jobs:
   call-build:
     uses: trevorism/actions-workflows/.github/workflows/build.yml@master
     with:
-      JDK_VERSION: 21
+      JDK_VERSION: 25
