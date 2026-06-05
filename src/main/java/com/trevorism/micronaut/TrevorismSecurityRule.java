@@ -28,7 +28,6 @@ import java.util.Set;
 public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     private static final Logger log = LoggerFactory.getLogger(TrevorismSecurityRule.class);
-    private static final String EXPECTED_ISSUER = "https://trevorism.com";
 
     @Inject
     PropertiesProvider propertiesProvider;
@@ -55,7 +54,7 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             return Mono.just(SecurityRuleResult.ALLOWED);
         }
 
-        log.info("Rejected request [{} {}]: {}", request.getMethod(), request.getPath(), validationResult.reason());
+        log.info(SecurityConstants.Messages.REJECTED_REQUEST, request.getMethod(), request.getPath(), validationResult.reason());
         if (validationResult.unauthenticated()) {
             return Mono.just(SecurityRuleResult.UNKNOWN);
         }
@@ -81,44 +80,46 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
     }
 
     private ClaimValidationResult validateInputs(AnnotationValue<Secure> annotation, Authentication authentication) {
-        if (authentication == null || authentication.getRoles() == null || authentication.getRoles().isEmpty()) {
-            return ClaimValidationResult.unauthenticated("Unable to parse token; identity role is missing");
+        if (authentication == null) {
+            return ClaimValidationResult.unauthenticated(SecurityConstants.Messages.MISSING_AUTHENTICATION);
+        }
+        if (authentication.getRoles() == null || authentication.getRoles().isEmpty()) {
+            return ClaimValidationResult.unauthenticated(SecurityConstants.Messages.MISSING_ROLE_CLAIMS);
         }
         if (annotation == null) {
-            return ClaimValidationResult.unauthorized("Unable to validate a method without @Secure annotation");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.MISSING_SECURE_ANNOTATION);
         }
         return ClaimValidationResult.allowed();
     }
 
     private ClaimValidationResult validateIssuer(Authentication authentication) {
-        Object issuerObject = authentication.getAttributes().get("issuer");
+        Object issuerObject = authentication.getAttributes().get(SecurityConstants.Claims.ISSUER);
         if (!(issuerObject instanceof String issuer)) {
-            return ClaimValidationResult.unauthenticated("Issuer claim is missing");
+            return ClaimValidationResult.unauthenticated(SecurityConstants.Messages.MISSING_ISSUER);
         }
-        if (!EXPECTED_ISSUER.equals(issuer)) {
-            return ClaimValidationResult.unauthenticated("Unexpected issuer: " + issuer);
+        if (!SecurityConstants.Claims.EXPECTED_ISSUER.equals(issuer)) {
+            return ClaimValidationResult.unauthenticated(SecurityConstants.Messages.UNEXPECTED_ISSUER + issuer);
         }
         return ClaimValidationResult.allowed();
     }
 
     private ClaimValidationResult validateAuthenticationAgainstAnnotation(AnnotationValue<Secure> annotation, Authentication authentication) {
         Optional<String> claimRole = authentication.getRoles().stream().findFirst();
-        ClaimValidationResult roleValidation = validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), claimRole);
+        ClaimValidationResult roleValidation = validateRole(annotation.stringValue(), annotation.booleanValue(SecurityConstants.Annotation.ALLOW_INTERNAL), claimRole);
         if (roleValidation.failed()) {
             return roleValidation;
         }
 
-        ClaimValidationResult audienceValidation = validateAudience(annotation.booleanValue("authorizeAudience"), authentication.getAttributes().get("audience"));
+        ClaimValidationResult audienceValidation = validateAudience(annotation.booleanValue(SecurityConstants.Annotation.AUTHORIZE_AUDIENCE), authentication.getAttributes().get(SecurityConstants.Claims.AUDIENCE));
         if (audienceValidation.failed()) {
             return audienceValidation;
         }
 
-        // Admins bypass permission checks entirely
         if (Roles.ADMIN.equals(claimRole.orElse(""))) {
             return ClaimValidationResult.allowed();
         }
 
-        return validatePermissions(annotation.stringValue("permissions"), authentication.getAttributes().get("permissions"));
+        return validatePermissions(annotation.stringValue(SecurityConstants.Annotation.PERMISSIONS), authentication.getAttributes().get(SecurityConstants.Claims.PERMISSIONS));
     }
 
     private ClaimValidationResult validateAudience(Optional<Boolean> authorizeAudience, Object audience) {
@@ -126,15 +127,15 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             return ClaimValidationResult.allowed();
         }
         if (!(audience instanceof Set<?> audienceSet)) {
-            return ClaimValidationResult.unauthorized("Audience claim is missing");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.MISSING_AUDIENCE);
         }
 
-        String clientId = propertiesProvider.getProperty("clientId");
+        String clientId = propertiesProvider.getProperty(SecurityConstants.Config.CLIENT_ID);
         if (clientId == null || clientId.isBlank()) {
-            return ClaimValidationResult.unauthorized("clientId configuration is missing");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.MISSING_CLIENT_ID_CONFIG);
         }
         if (!audienceSet.contains(clientId)) {
-            return ClaimValidationResult.unauthorized("Audience does not contain configured clientId");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.INVALID_AUDIENCE);
         }
         return ClaimValidationResult.allowed();
     }
@@ -144,13 +145,12 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             return ClaimValidationResult.allowed();
         }
         if (!(claimedPermissions instanceof String permissionString)) {
-            // No permissions claim in token — allow; only reject when the claim exists but is insufficient
             return ClaimValidationResult.allowed();
         }
 
         for (char permission : permissions.get().toCharArray()) {
             if (!permissionString.contains(String.valueOf(permission))) {
-                return ClaimValidationResult.unauthorized("Insufficient permissions");
+                return ClaimValidationResult.unauthorized(SecurityConstants.Messages.INSUFFICIENT_PERMISSIONS);
             }
         }
         return ClaimValidationResult.allowed();
@@ -158,7 +158,7 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
 
     private static ClaimValidationResult validateRole(Optional<String> role, Optional<Boolean> allowInternal, Optional<String> claimRole) {
         if (claimRole.isEmpty()) {
-            return ClaimValidationResult.unauthenticated("Role claim is missing");
+            return ClaimValidationResult.unauthenticated(SecurityConstants.Messages.MISSING_ROLE_CLAIM);
         }
 
         String roleFromClaim = claimRole.get();
@@ -166,18 +166,18 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             if (allowInternal.isPresent() && allowInternal.get()) {
                 return ClaimValidationResult.allowed();
             }
-            return ClaimValidationResult.unauthorized("Internal role is not allowed");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.INTERNAL_ROLE_NOT_ALLOWED);
         }
 
         String requiredRole = role.orElse("");
         if (Roles.ADMIN.equals(requiredRole) && !Roles.ADMIN.equals(roleFromClaim)) {
-            return ClaimValidationResult.unauthorized("Admin role is required");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.ADMIN_ROLE_REQUIRED);
         }
         if (Roles.SYSTEM.equals(requiredRole) && !Roles.ADMIN.equals(roleFromClaim) && !Roles.SYSTEM.equals(roleFromClaim)) {
-            return ClaimValidationResult.unauthorized("System role is required");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.SYSTEM_ROLE_REQUIRED);
         }
         if (Roles.TENANT_ADMIN.equals(requiredRole) && !Roles.ADMIN.equals(roleFromClaim) && !Roles.SYSTEM.equals(roleFromClaim) && !Roles.TENANT_ADMIN.equals(roleFromClaim)) {
-            return ClaimValidationResult.unauthorized("Tenant admin role is required");
+            return ClaimValidationResult.unauthorized(SecurityConstants.Messages.TENANT_ADMIN_ROLE_REQUIRED);
         }
         return ClaimValidationResult.allowed();
     }

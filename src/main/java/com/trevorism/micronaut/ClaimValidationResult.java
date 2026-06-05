@@ -2,13 +2,6 @@ package com.trevorism.micronaut;
 
 public record ClaimValidationResult(FailureType failureType, String reason) {
 
-    public ClaimValidationResult {
-        if (failureType == null) {
-            throw new IllegalArgumentException("failureType cannot be null");
-        }
-        reason = reason == null ? "" : reason;
-    }
-
     public static ClaimValidationResult allowed() {
         return new ClaimValidationResult(FailureType.NONE, "");
     }

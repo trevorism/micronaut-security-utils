@@ -1,3 +1,11 @@
+## 3.0.0
+
+Migrate to micronaut 5. Updated log messages in failure scenarios.
+
+## 2.5.0
+
+Move to java 25.
+
 ## 2.3.1
 
 Move to java 21.

@@ -19,7 +19,6 @@ import java.util.Objects;
 @Singleton
 public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<HttpRequest<?>> {
 
-    public static final String BEARER_PREFIX = "bearer ";
     private static final Logger log = LoggerFactory.getLogger(TrevorismAuthenticationFetcher.class.getName());
 
     @Inject
@@ -35,8 +34,8 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
             }
             return Mono.just(publishToken(Objects.requireNonNullElse(bearerToken, sessionToken)));
         } catch (Exception e) {
-            log.warn("Token rejected: {}", e.getMessage());
-            log.debug("Token rejection details", e);
+            log.warn(SecurityConstants.Messages.TOKEN_REJECTED, e.getMessage());
+            log.debug(SecurityConstants.Messages.TOKEN_REJECTION_DETAILS, e);
             return Mono.empty();
         }
     }
@@ -49,7 +48,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     private String getSigningKey() {
         try {
-            String key = propertiesProvider.getProperty("signingKey");
+            String key = propertiesProvider.getProperty(SecurityConstants.Config.SIGNING_KEY);
             if(key == null || key.isBlank())
                 throw new Exception();
             return key;
@@ -60,11 +59,11 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     private String getTokenFromBearerToken(HttpRequest<?> request) {
         try {
-            String authString = request.getHeaders().get("Authorization");
-            if (authString == null || !authString.toLowerCase().startsWith(BEARER_PREFIX)) {
+            String authString = request.getHeaders().get(SecurityConstants.Http.AUTHORIZATION_HEADER);
+            if (authString == null || !authString.toLowerCase().startsWith(SecurityConstants.Http.BEARER_PREFIX)) {
                 return null;
             }
-            return authString.substring(BEARER_PREFIX.length());
+            return authString.substring(SecurityConstants.Http.BEARER_PREFIX.length());
         } catch (Exception ignored) {
             return null;
         }
@@ -72,7 +71,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     private String getTokenFromSessionCookie(HttpRequest<?> request) {
         try {
-            return request.getCookies().get("session").getValue();
+            return request.getCookies().get(SecurityConstants.Http.SESSION_COOKIE).getValue();
         } catch (Exception ignored) {
             return null;
         }
@@ -80,13 +79,13 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
 
     private Map<String, Object> convertClaimsToMap(ClaimProperties claimProperties) {
         Map<String, Object> claimMap = new HashMap<>();
-        addIfNotNull(claimMap, "issuer", claimProperties.getIssuer());
-        addIfNotNull(claimMap, "audience", claimProperties.getAudience());
-        addIfNotNull(claimMap, "subject", claimProperties.getSubject());
-        addIfNotNull(claimMap, "id", claimProperties.getId());
-        addIfNotNull(claimMap, "type", claimProperties.getType());
-        addIfNotNull(claimMap, "tenant", claimProperties.getTenant());
-        addIfNotNull(claimMap, "permissions", claimProperties.getPermissions());
+        addIfNotNull(claimMap, SecurityConstants.Claims.ISSUER, claimProperties.getIssuer());
+        addIfNotNull(claimMap, SecurityConstants.Claims.AUDIENCE, claimProperties.getAudience());
+        addIfNotNull(claimMap, SecurityConstants.Claims.SUBJECT, claimProperties.getSubject());
+        addIfNotNull(claimMap, SecurityConstants.Claims.ID, claimProperties.getId());
+        addIfNotNull(claimMap, SecurityConstants.Claims.TYPE, claimProperties.getType());
+        addIfNotNull(claimMap, SecurityConstants.Claims.TENANT, claimProperties.getTenant());
+        addIfNotNull(claimMap, SecurityConstants.Claims.PERMISSIONS, claimProperties.getPermissions());
         return claimMap;
     }
 
