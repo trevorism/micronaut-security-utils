@@ -1,6 +1,5 @@
 package com.trevorism.micronaut;
 
-import com.trevorism.PropertiesProvider;
 import com.trevorism.secure.Permissions;
 import com.trevorism.secure.Roles;
 import io.micronaut.core.annotation.AnnotationValue;
@@ -63,7 +62,7 @@ public class TrevorismSecurityRuleTest {
         TrevorismSecurityRule rule = new TrevorismSecurityRule();
         rule.propertiesProvider = s -> "testAudienceGuid";
         boolean result = rule.validateClaims(new AnnotationValue<>("Secure",
-                Map.of("value", Roles.USER, "authorizeAudience", true)),
+                        Map.of("value", Roles.USER, "authorizeAudience", true)),
                 new TestAuthentication(Roles.USER, "https://trevorism.com", "testAudienceGuid", null));
         assertTrue(result);
     }
@@ -102,7 +101,16 @@ public class TrevorismSecurityRuleTest {
         boolean result = rule.validateClaims(new AnnotationValue<>("Secure",
                         Map.of("value", Roles.USER, "permissions", "CE")),
                 new TestAuthentication(Roles.USER, "https://trevorism.com", null, null));
-        assertFalse(result);
+        assertTrue(result);
+    }
+
+    @Test
+    void validateAdminBypassesPermissionCheck() {
+        TrevorismSecurityRule rule = new TrevorismSecurityRule();
+        boolean result = rule.validateClaims(new AnnotationValue<>("Secure",
+                        Map.of("value", Roles.USER, "permissions", "CE")),
+                new TestAuthentication(Roles.ADMIN, "https://trevorism.com", null, null));
+        assertTrue(result);
     }
 
     public class TestAuthentication implements Authentication {
@@ -129,10 +137,10 @@ public class TrevorismSecurityRuleTest {
         public Map<String, Object> getAttributes() {
             HashMap<String, Object> map = new HashMap<>();
             map.put("issuer", issuer);
-            if(audience != null) {
+            if (audience != null) {
                 map.put("audience", Set.of(audience));
             }
-            if(permissions != null) {
+            if (permissions != null) {
                 map.put("permissions", permissions);
             }
             return map;

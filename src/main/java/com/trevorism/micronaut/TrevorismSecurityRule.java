@@ -42,7 +42,7 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
     @Override
     public Publisher<SecurityRuleResult> check(HttpRequest<?> request, Authentication authentication) {
         RouteMatch<?> routeMatch = RouteAttributes.getRouteMatch(request).orElse(null);
-        if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch && methodBasedRouteMatch.hasAnnotation(Secure.class)) {
+        if (routeMatch instanceof MethodBasedRouteMatch methodBasedRouteMatch && methodBasedRouteMatch.getAnnotationMetadata().hasDeclaredAnnotation(Secure.class)) {
             return evaluateSecureAnnotation(authentication, methodBasedRouteMatch, request);
         }
         return Mono.just(SecurityRuleResult.ALLOWED);
@@ -102,7 +102,8 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
     }
 
     private ClaimValidationResult validateAuthenticationAgainstAnnotation(AnnotationValue<Secure> annotation, Authentication authentication) {
-        ClaimValidationResult roleValidation = validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), authentication.getRoles().stream().findFirst());
+        Optional<String> claimRole = authentication.getRoles().stream().findFirst();
+        ClaimValidationResult roleValidation = validateRole(annotation.stringValue(), annotation.booleanValue("allowInternal"), claimRole);
         if (roleValidation.failed()) {
             return roleValidation;
         }
@@ -110,6 +111,11 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
         ClaimValidationResult audienceValidation = validateAudience(annotation.booleanValue("authorizeAudience"), authentication.getAttributes().get("audience"));
         if (audienceValidation.failed()) {
             return audienceValidation;
+        }
+
+        // Admins bypass permission checks entirely
+        if (Roles.ADMIN.equals(claimRole.orElse(""))) {
+            return ClaimValidationResult.allowed();
         }
 
         return validatePermissions(annotation.stringValue("permissions"), authentication.getAttributes().get("permissions"));
@@ -138,7 +144,8 @@ public class TrevorismSecurityRule implements SecurityRule<HttpRequest<?>> {
             return ClaimValidationResult.allowed();
         }
         if (!(claimedPermissions instanceof String permissionString)) {
-            return ClaimValidationResult.unauthorized("Permissions claim is missing");
+            // No permissions claim in token — allow; only reject when the claim exists but is insufficient
+            return ClaimValidationResult.allowed();
         }
 
         for (char permission : permissions.get().toCharArray()) {
