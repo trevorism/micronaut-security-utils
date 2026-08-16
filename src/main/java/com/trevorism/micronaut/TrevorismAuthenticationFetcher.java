@@ -34,7 +34,7 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
             }
             return Mono.just(publishToken(Objects.requireNonNullElse(bearerToken, sessionToken)));
         } catch (Exception e) {
-            log.warn(SecurityConstants.Messages.TOKEN_REJECTED, e.getMessage());
+            log.warn(SecurityConstants.Messages.TOKEN_REJECTED, describeFailure(e));
             log.debug(SecurityConstants.Messages.TOKEN_REJECTION_DETAILS, e);
             return Mono.empty();
         }
@@ -43,7 +43,17 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
     private Authentication publishToken(String bearerToken) {
         ClaimProperties claimProperties = ClaimsProvider.getClaims(bearerToken, getSigningKey());
         Map<String, Object> claimMap = convertClaimsToMap(claimProperties);
-        return Authentication.build(claimProperties.getSubject(), List.of(claimProperties.getRole()), claimMap);
+        return Authentication.build(claimProperties.getSubject(), rolesFromClaims(claimProperties), claimMap);
+    }
+
+    private static List<String> rolesFromClaims(ClaimProperties claimProperties) {
+        String role = claimProperties.getRole();
+        return role == null ? List.of() : List.of(role);
+    }
+
+    private static String describeFailure(Exception e) {
+        String message = e.getMessage();
+        return message == null || message.isBlank() ? e.getClass().getSimpleName() : message;
     }
 
     private String getSigningKey() {

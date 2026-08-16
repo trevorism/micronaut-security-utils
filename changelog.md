@@ -1,3 +1,7 @@
+## 3.1.0
+
+Update dependencies and improve logging for failed authentication attempts.
+
 ## 3.0.0
 
 Migrate to micronaut 5. Updated log messages in failure scenarios.
