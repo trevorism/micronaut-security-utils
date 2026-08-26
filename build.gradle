@@ -38,7 +38,7 @@ micronaut {
 }
 
 dependencies {
-    api 'com.trevorism:secure-utils:6.0.0'
+    api 'com.trevorism:secure-utils:7.0.0'
     api 'io.projectreactor:reactor-core:3.8.6'
 
     annotationProcessor 'io.micronaut:micronaut-inject-java:5.1.10'

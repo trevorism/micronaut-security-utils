@@ -1,3 +1,7 @@
+## 3.2.0
+
+Update secure utils to 7.0.0.
+
 ## 3.1.0
 
 Update dependencies and improve logging for failed authentication attempts.
