@@ -1,6 +1,7 @@
 package com.trevorism.micronaut;
 
 import com.trevorism.*;
+import io.jsonwebtoken.JwtException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.filters.AuthenticationFetcher;
@@ -33,6 +34,9 @@ public class TrevorismAuthenticationFetcher implements AuthenticationFetcher<Htt
                 return Mono.empty();
             }
             return Mono.just(publishToken(Objects.requireNonNullElse(bearerToken, sessionToken)));
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug(SecurityConstants.Messages.TOKEN_REJECTED, describeFailure(e));
+            return Mono.empty();
         } catch (Exception e) {
             log.warn(SecurityConstants.Messages.TOKEN_REJECTED, describeFailure(e));
             log.debug(SecurityConstants.Messages.TOKEN_REJECTION_DETAILS, e);
