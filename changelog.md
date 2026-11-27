@@ -1,3 +1,7 @@
+## 3.2.1
+
+Log rejected client tokens (malformed, expired, bad signature) at debug without a stack trace.
+
 ## 3.2.0
 
 Update secure utils to 7.0.0.
